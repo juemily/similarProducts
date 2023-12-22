@@ -3,6 +3,7 @@ package com.similar.products.infrastructure.controller;
 import com.similar.products.application.SimilarProductsService;
 import com.similar.products.domain.exceptions.SimilarProductsException;
 import com.similar.products.domain.model.resource.ProductDetail;
+import com.similar.products.domain.model.resource.SimilarProducts;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,8 +31,8 @@ public class SimilarProductController implements SimilarProductApi {
     }
 
    @Override
-    public ResponseEntity<List<Integer>>getSimilarids( String productsId)throws SimilarProductsException {
-        List<Integer> response = similarProductsService.getSimilarIds(productsId);
+    public ResponseEntity<SimilarProducts>getSimilarids(String productsId)throws SimilarProductsException {
+       SimilarProducts response = similarProductsService.getSimilarIds(productsId);
         if(response != null){
             return new ResponseEntity<>(response, HttpStatus.OK);
         }else{

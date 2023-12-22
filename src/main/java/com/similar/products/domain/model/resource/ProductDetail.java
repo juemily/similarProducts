@@ -7,6 +7,7 @@ import lombok.*;
 @RequiredArgsConstructor
 public class ProductDetail {
     private String id;
+
     private String name;
     private Number price;
     private boolean availability;

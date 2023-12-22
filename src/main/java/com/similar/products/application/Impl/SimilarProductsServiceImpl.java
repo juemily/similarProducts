@@ -3,6 +3,7 @@ package com.similar.products.application.Impl;
 import com.similar.products.application.SimilarProductsService;
 import com.similar.products.domain.exceptions.SimilarProductsException;
 import com.similar.products.domain.model.resource.ProductDetail;
+import com.similar.products.domain.model.resource.SimilarProducts;
 import com.similar.products.infrastructure.mapper.ProductDetailMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,47 +30,67 @@ public class SimilarProductsServiceImpl implements SimilarProductsService {
     private final ProductDetailMapper productDetailMapper;
 
 
-
     @Override
     @Cacheable("getProduct")
     public ProductDetail getProduct(String productId) throws SimilarProductsException {
         log.info("*********** getProduct service ***********");
-        String resource = requestToMock(String.format("product/%s",productId));
+        String resource = requestToMock(String.format("product/%s", productId));
 
-        if(!resource.isBlank()){
+        if (!resource.isBlank()) {
             return productDetailMapper.toDto(resource);
-        }else{
-            throw new SimilarProductsException(HttpStatus.NOT_FOUND.value(),String.format("Not found id: %s",productId));
+        } else {
+            throw new SimilarProductsException(HttpStatus.NOT_FOUND.value(), String.format("Not found id: %s", productId));
         }
 
     }
 
     @Override
     @Cacheable("getProduct")
-    public List<Integer> getSimilarIds(String productId) throws SimilarProductsException{
+    public SimilarProducts getSimilarIds(String productId) throws SimilarProductsException {
         log.info("*********** getSimilarIds service ***********");
 
-        String resource = requestToMock(String.format("product/%s/similarids",productId));
-        resource = resource.replace("[","");
-        resource = resource.replace("]","");
+        SimilarProducts similarProducts = new SimilarProducts();
+        List<ProductDetail> productDetailList = new ArrayList<>();
 
-        if(!resource.isBlank()){
-            return  Arrays.asList(resource.split(",")).stream()
+        String resource = requestToMock(String.format("product/%s/similarids", productId));
+        resource = resource.replace("[", "");
+        resource = resource.replace("]", "");
+
+
+        if (!resource.isBlank()) {
+            List<Integer> cleanList = Arrays.asList(resource.split(",")).stream()
                     .map(Integer::parseInt).toList();
-        }else{
-            throw new SimilarProductsException(HttpStatus.NOT_FOUND.value(),"got an empty list ");
+
+            for (Integer id : cleanList) {
+
+
+                log.info("*********** id to search ***********" + id);
+                String product = requestToMock(String.format("product/%s", id));
+                if (product != null && !product.isBlank()) {
+                    productDetailList.add(productDetailMapper.toDto(product));
+                }
+
+            }
+
+        } else {
+            throw new SimilarProductsException(HttpStatus.NOT_FOUND.value(), "got an empty list ");
         }
 
+        similarProducts.setSimilarProducts(productDetailList);
+        return similarProducts;
+
     }
+
     @SneakyThrows
     @Async
-    private String requestToMock(String url) throws SimilarProductsException{
+    public String requestToMock(String url) throws SimilarProductsException {
         log.info("*********** requestToMock service ***********");
         AtomicReference<String> response = new AtomicReference<>(new String());
         Mono<String> request = webClient.get()
                 .uri(url)
                 .retrieve()
-                .bodyToMono(String.class);
+                .bodyToMono(String.class)
+                .retry(2);
         request.subscribe(
                 result -> {
                     response.setPlain(result);
@@ -77,7 +98,7 @@ public class SimilarProductsServiceImpl implements SimilarProductsService {
                 },
                 error -> {
                     log.error(error.getMessage());
-                    throw new SimilarProductsException(error.getMessage(),error.getCause(), HttpStatus.NOT_FOUND.value());
+                    throw new SimilarProductsException(error.getMessage(), error.getCause(), HttpStatus.NOT_FOUND.value());
                 }
         );
         request.block();
