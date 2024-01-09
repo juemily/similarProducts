@@ -33,13 +33,14 @@ aplicativo Restfull que se encargarara de consultar mocks y devolver (o no depen
 
 - [Swagger](#http://localhost:5000/swagger-ui/index.html)
 - se pueden realizar llamadas get pero para levantar los mocks es [necesarios seguir las intrucciones del siguiente repositorio](#https://github.com/dalogax/backendDevTest)
-- ...
+
 
 ## Configuración
 
 - en caso de querer configurarlo para usarlo como imagen docker
-    1. descomentar la dependencia comentada en el archivo .pom
-    Ejecutar los siguientes comandos:
+  descomentar la dependencia comentada en el archivo .pom 
+![Pom](images/pom.png)
+- Ejecutar los siguientes comandos:
 
         1. docker build -t similar-products:1 .
         2. docker-compose up -d similar-products:1
@@ -49,12 +50,12 @@ aplicativo Restfull que se encargarara de consultar mocks y devolver (o no depen
 
 ##Respuesta 
 - Ejecucion por shell sin agregar flux
-![Grafana](images/shell.png)
+![Shell](images/shell.png)
 - Grafana sin agregar flux
 ![Grafana](images/grafana.png)
 
 - Ejecucion por shell con flux
-![Grafana](images/shellConFlux.png)
+![Shell](images/shellConFlux.png)
 - Grafana con flux
 ![Grafana](images/grafanaWithFlux.png)
 
