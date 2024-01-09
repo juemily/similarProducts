@@ -47,3 +47,14 @@ aplicativo Restfull que se encargarara de consultar mocks y devolver (o no depen
 
 
 
+##Respuesta 
+- Ejecucion por shell sin agregar flux
+![Grafana](images/shell.png)
+- Grafana sin agregar flux
+![Grafana](images/grafana.png)
+
+- Ejecucion por shell con flux
+![Grafana](images/shellConFlux.png)
+- Grafana sin agregar flux
+![Grafana](images/grafanaWithFlux.png)
+

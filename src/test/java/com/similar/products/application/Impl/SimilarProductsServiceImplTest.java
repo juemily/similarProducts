@@ -3,7 +3,6 @@ package com.similar.products.application.Impl;
 import com.similar.products.domain.model.resource.ProductDetail;
 import com.similar.products.domain.model.resource.SimilarProducts;
 import com.similar.products.infrastructure.mapper.ProductDetailMapper;
-import org.junit.Assert;
 import org.junit.function.ThrowingRunnable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,10 +11,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -23,10 +19,8 @@ import reactor.core.publisher.Mono;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
@@ -42,10 +36,7 @@ class SimilarProductsServiceImplTest {
     private WebClient webClientMock;
 
     @Mock
-    private WebClient.RequestBodyUriSpec requestBodyUriSpecMock;
-
-    @Mock
-    private WebClient.RequestBodySpec requestBodySpecMock;
+    private SimilarProductsServiceImpl mockServiceResponse;
 
     @Mock
     private  ProductDetailMapper productDetailMapper;
@@ -61,13 +52,11 @@ class SimilarProductsServiceImplTest {
     @Mock
     private WebClient.ResponseSpec responseSpecMock;
 
+    private SimilarProducts response = new SimilarProducts();
+    private ProductDetail productDetail = new ProductDetail();
+    private List<ProductDetail> productDetailList = new ArrayList<>();
 
 
-
-    SimilarProducts response = new SimilarProducts();
-
-    ProductDetail productDetail = new ProductDetail();
-    List<ProductDetail> productDetailList = new ArrayList<>();
 
 
     private final String requestMock = "{\n" +
@@ -76,6 +65,8 @@ class SimilarProductsServiceImplTest {
             "    \"price\": 9.99,\n" +
             "    \"availability\": true\n" +
             "}";
+
+    private final String requestMockArray = "[3,100,1000]";
 
 
 
@@ -95,15 +86,13 @@ class SimilarProductsServiceImplTest {
         when(webClientMock.get()).thenReturn(requestHeadersUriSpecMock);
         when(requestHeadersUriSpecMock.uri(anyString())).thenReturn(requestHeadersSpecMock);
         when(requestHeadersSpecMock.retrieve()).thenReturn(responseSpecMock);
-        when(responseSpecMock.bodyToMono(
-                ArgumentMatchers.<Class<String>>notNull())).thenReturn(Mono.just(requestMock));
-
-
 
     }
 
     @Test
     void getProduct() {
+        when(responseSpecMock.bodyToMono(
+                ArgumentMatchers.<Class<String>>notNull())).thenReturn(Mono.just(requestMock));
 
         when(productDetailMapper.toDto(requestMock)).thenReturn(productDetail);
         assertEquals(productDetail,similarProductsService.getProduct("1"));
@@ -113,26 +102,25 @@ class SimilarProductsServiceImplTest {
     @Test
     void getSimilarIds() {
 
-        SimilarProductsServiceImpl mockService = Mockito.mock(SimilarProductsServiceImpl.class);
-        Mockito.when(mockService.requestToMock(Mockito.anyString())).thenReturn(requestMock);
-        Mockito.when(mockService.getSimilarIds(anyString())).thenReturn(response);
-        assertEquals(response,mockService.getSimilarIds(anyString()));
+        when(responseSpecMock.bodyToMono(
+                ArgumentMatchers.<Class<String>>notNull())).thenReturn(Mono.just(requestMockArray));
+        when(mockServiceResponse.requestToMock("product/3")).thenReturn(requestMock);
+        when(mockServiceResponse.requestToMock("product/100")).thenReturn(requestMock);
+        when(mockServiceResponse.requestToMock("product/1000")).thenReturn(requestMock);
+        when(productDetailMapper.toDto(requestMock)).thenReturn(productDetail);
+        when(mockServiceResponse.getProduct(anyString())).thenReturn(productDetail);
+        assertNotNull(similarProductsService.getSimilarIds("1"));
+
     }
 
     @Test
     void requestToMock() {
+        when(responseSpecMock.bodyToMono(
+                ArgumentMatchers.<Class<String>>notNull())).thenReturn(Mono.just(requestMock));
 
         assertEquals(requestMock, similarProductsService.requestToMock("productos/1"));
 
 
     }
 
-    @Test
-    public void getProductFail(){
-
-        SimilarProductsServiceImpl mockService = Mockito.mock(SimilarProductsServiceImpl.class);
-        when(mockService.requestToMock(Mockito.anyString())).thenReturn("");
-        assertThrows(java.lang.NullPointerException.class, (ThrowingRunnable) mockService.getProduct(anyString()));
-
-    }
 }

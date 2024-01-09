@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
@@ -28,14 +29,17 @@ public class SimilarProductsServiceImpl implements SimilarProductsService {
     private final WebClient webClient;
 
     private final ProductDetailMapper productDetailMapper;
-
-
+    /**
+     * getProduct: construye url para realizar una peticion a un webclient de devolvera un string
+     * @Params: productId: String
+     * @Return: ProductDetail: objeto con detalles de producto
+     * @Author: Jmaluenga
+     * */
     @Override
     @Cacheable("getProduct")
     public ProductDetail getProduct(String productId) throws SimilarProductsException {
         log.info("*********** getProduct service ***********");
         String resource = requestToMock(String.format("product/%s", productId));
-
         if (!resource.isBlank()) {
             return productDetailMapper.toDto(resource);
         } else {
@@ -44,8 +48,17 @@ public class SimilarProductsServiceImpl implements SimilarProductsService {
 
     }
 
+    /**
+     * getSimilarIds: construye url para realizar una peticion a un webclient de devolvera un string con formato de array
+        en caso que exista una primera respuesta se utiliza recursividad para armar una nueva url y optener los productos similares
+        que se agregarán a una lista de produtos similares.
+
+     * @Params: productId: String
+     * @Return: SimilarProducts: lista de productos similares
+     * @Author: Jmaluenga
+     * */
     @Override
-    @Cacheable("getProduct")
+    @Cacheable("getSimilarIds")
     public SimilarProducts getSimilarIds(String productId) throws SimilarProductsException {
         log.info("*********** getSimilarIds service ***********");
 
@@ -53,24 +66,20 @@ public class SimilarProductsServiceImpl implements SimilarProductsService {
         List<ProductDetail> productDetailList = new ArrayList<>();
 
         String resource = requestToMock(String.format("product/%s/similarids", productId));
-        resource = resource.replace("[", "");
-        resource = resource.replace("]", "");
+        resource = resource.replaceAll("^\\[|\\]$", "");
+
 
 
         if (!resource.isBlank()) {
             List<Integer> cleanList = Arrays.asList(resource.split(",")).stream()
                     .map(Integer::parseInt).toList();
 
-            for (Integer id : cleanList) {
+            productDetailList = Flux.fromIterable(cleanList)
+                    .flatMap(id -> Mono.fromSupplier(() -> getProduct(id.toString())))
+                    .filter(temporalDetail -> temporalDetail != null)
+                    .collectList()
+                    .block();
 
-
-                log.info("*********** id to search ***********" + id);
-                String product = requestToMock(String.format("product/%s", id));
-                if (product != null && !product.isBlank()) {
-                    productDetailList.add(productDetailMapper.toDto(product));
-                }
-
-            }
 
         } else {
             throw new SimilarProductsException(HttpStatus.NOT_FOUND.value(), "got an empty list ");
@@ -81,11 +90,18 @@ public class SimilarProductsServiceImpl implements SimilarProductsService {
 
     }
 
+    /**
+     * requestToMock: realiza una petición a un web client con la url que se le pase como string
+     * dicha petición tendrá dos reintentos por cada  llamado a esta función
+     * @Params: Url: String
+     * @Return: respuesta del cliente web como string
+     * @Author: Jmaluenga
+     * */
     @SneakyThrows
     @Async
     public String requestToMock(String url) throws SimilarProductsException {
         log.info("*********** requestToMock service ***********");
-        AtomicReference<String> response = new AtomicReference<>(new String());
+        AtomicReference<String> response = new AtomicReference<>();
         Mono<String> request = webClient.get()
                 .uri(url)
                 .retrieve()
@@ -104,4 +120,6 @@ public class SimilarProductsServiceImpl implements SimilarProductsService {
         request.block();
         return response.toString();
     }
+
+
 }
